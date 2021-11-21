@@ -1,0 +1,80 @@
+body {
+  margin: 30px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
+    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  --bs-body-bg: hsl(0, 0%, 20%);
+  --bs-body-color: hsl(0, 0%, 100%);
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+.hidden {
+  display: none;
+}
+
+.float-left {
+  float: left;
+}
+
+/* Set styles for input fields and modals */
+.modal-content {
+  background-color: var(--bs-gray-900) !important;
+}
+
+input,
+select {
+  background-color: var(--bs-gray-400) !important;
+}
+
+/* Make table body scrollable with a fixed header */
+.tableFixHead {
+  overflow: auto;
+  max-height: calc(100vh - 300px);
+}
+
+.tableFixHead thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.subgrid-row {
+  padding: 0 !important;
+}
+
+/* Add styling to scroll bars in webkit browsers */
+::-webkit-scrollbar {
+  width: 1em;
+  height: 1em;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bs-gray-800);
+  border-radius: 100vw;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bs-gray-500);
+  border: 2px solid var(--bs-gray-600);
+  border-radius: 100vw;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-gray-300);
+}
+
+::-webkit-scrollbar-corner {
+  background-color: inherit;
+}
+
+/* Remove one pixel gap at top of header that shows content when scrolling */
+.table-bordered > :not(caption) > thead > tr {
+  border-top-width: 0;
+}
