@@ -5,15 +5,19 @@
   "scripts": {
     "frontend": "cd frontend && npm start",
     "devServer": "cd server && npm run devStart",
-    "server": "cd server && npm start",  
+    "server": "cd server && npm start",
     "start": "concurrently \"npm run frontend\" \"npm run server\" ",
-    "devStart": "concurrently \"npm run frontend\" \"npm run devServer\" " 
+    "devStart": "concurrently \"npm run frontend\" \"npm run devServer\" "
   },
   "main": "index.js",
   "author": "Nathan Tebay",
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "concurrently": "^6.4.0"
+    "concurrently": "^6.5.1",
+    "express": "^5.2.1",
+    "mysql": "^2.18.1",
+    "mysql-utilities": "^1.1.4",
+    "pluralize": "^8.0.0"
   }
 }
