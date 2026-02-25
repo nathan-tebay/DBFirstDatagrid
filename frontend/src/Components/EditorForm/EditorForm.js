@@ -49,7 +49,12 @@ const EditForm = forwardRef(function EditForm({ fields, saveComplete, table }, r
     setValidated(true);
     setSaveError(null);
     try {
-      await apiClient.put("add", { table, ...values });
+      if (values.id) {
+        const { id, ...rest } = values;
+        await apiClient.patch("update", { table, id, ...rest });
+      } else {
+        await apiClient.put("add", { table, ...values });
+      }
       if (saveComplete) saveComplete();
     } catch (err) {
       setSaveError(err.message || "Save failed. Please try again.");
@@ -80,6 +85,7 @@ const EditForm = forwardRef(function EditForm({ fields, saveComplete, table }, r
       )}
       {Object.keys(fields).map((k) => {
         const field = fields[k];
+        if (field.name === "id") return null;
         const controlId = field.name;
         const required = field.required && field.name !== "id";
 
@@ -133,11 +139,9 @@ const EditForm = forwardRef(function EditForm({ fields, saveComplete, table }, r
 
         return (
           <Form.Group as={Row} className="mb-2" controlId={controlId} key={`formGroup-${controlId}`}>
-            {field.name === "id" ? null : (
-              <Form.Label column sm={4} className="text-right">
-                {field.displayText}
-              </Form.Label>
-            )}
+            <Form.Label column sm={4} className="text-right">
+              {field.displayText}
+            </Form.Label>
             <Col sm={8}>
               {input}
               {required && <Form.Control.Feedback type="invalid">{`${field.displayText} is required.`}</Form.Control.Feedback>}

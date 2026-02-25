@@ -19,7 +19,7 @@ function EditModal({ hideEditModal, fields, showEditModal, table, onSaved }) {
   };
 
   return (
-    <Modal show={showEditModal}>
+    <Modal show={showEditModal} onHide={hideEditModal}>
       <Modal.Header>
         <Modal.Title id="addEditTitle">Add/Edit {camelCaseToLabel(table)}</Modal.Title>
       </Modal.Header>

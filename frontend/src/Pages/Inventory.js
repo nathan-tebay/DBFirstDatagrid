@@ -16,6 +16,8 @@ function Inventory() {
     setShowEditModal(false);
   };
 
+  const handleShowEditModal = () => setShowEditModal(true);
+
   const handleSetLoading = (value) => {
     setLoading(value);
   };
@@ -41,7 +43,8 @@ function Inventory() {
         setFieldsData={handleSetFields}
         setLoadingState={handleSetLoading}
         setEditTable={handleSetEditTable}
-        subgrid="inventoryOrders"
+        setShowEditModal={handleShowEditModal}
+        subgrid="orderItems"
         refreshKey={refreshKey}
       ></DataGrid>
 

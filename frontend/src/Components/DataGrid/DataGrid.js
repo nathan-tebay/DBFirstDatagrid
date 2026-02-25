@@ -1,7 +1,7 @@
 import Table from "react-bootstrap/Table";
 import Button from "react-bootstrap/Button";
 import React, { useEffect, useState } from "react";
-import { PlusCircle, DashCircle } from "react-bootstrap-icons";
+import { PlusCircle, DashCircle, PencilSquare, Trash } from "react-bootstrap-icons";
 import apiClient from "../../apiClient";
 import { camelCaseToLabel } from "../../shared";
 import Paginator from "../Paginator/Paginator.js";
@@ -24,6 +24,7 @@ function DataGrid({
   const [totalCount, setTotalCount] = useState(0);
   const [openSubgrids, setOpenSubgrids] = useState({});
   const [error, setError] = useState(null);
+  const [deleteKey, setDeleteKey] = useState(0);
 
   useEffect(() => {
     let mounted = true;
@@ -50,7 +51,7 @@ function DataGrid({
         if (mounted) setGridLoading(false);
       });
     return () => (mounted = false);
-  }, [table, parentKey, parentId, pageNumber, refreshKey]);
+  }, [table, parentKey, parentId, pageNumber, refreshKey, deleteKey]);
 
   const handleSetPageNumber = (page) => setPageNumber(page);
 
@@ -58,6 +59,20 @@ function DataGrid({
     if (setEditTable) setEditTable(table);
     if (setFieldsData) setFieldsData(fields);
     if (setShowEditModal) setShowEditModal(true);
+  };
+
+  const handleEdit = (row) => {
+    const enrichedFields = fields.map((f) => ({ ...f, value: row[f.name] }));
+    if (setEditTable) setEditTable(table);
+    if (setFieldsData) setFieldsData(enrichedFields);
+    if (setShowEditModal) setShowEditModal(true);
+  };
+
+  const handleDelete = (id) => {
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+    apiClient.del("delete", { table, id })
+      .then(() => setDeleteKey((k) => k + 1))
+      .catch((err) => setError(err.message || "Delete failed."));
   };
 
   const toggleSubgrid = (id) => {
@@ -119,12 +134,13 @@ function DataGrid({
                   }
                   return <th key={`th-${idx}`}>{f.displayText}</th>;
                 })}
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.length === 0 ? (
                 <tr>
-                  <td colSpan={fields.length} style={{ textAlign: "center" }}>
+                  <td colSpan={fields.length + 1} style={{ textAlign: "center" }}>
                     <h2>No records found.</h2>
                   </td>
                 </tr>
@@ -167,11 +183,19 @@ function DataGrid({
                             </td>
                           );
                         })}
+                        <td key={`${rIdx}-actions`}>
+                          <Button variant="outline-warning" size="sm" onClick={() => handleEdit(row)} style={{ marginRight: "4px" }}>
+                            <PencilSquare />
+                          </Button>
+                          <Button variant="outline-danger" size="sm" onClick={() => handleDelete(idValue)}>
+                            <Trash />
+                          </Button>
+                        </td>
                       </tr>
 
                       {subgrid && openSubgrids[idValue] ? (
                         <tr>
-                          <td colSpan={fields.length} className="subgrid-row">
+                          <td colSpan={fields.length + 1} className="subgrid-row">
                             <DataGrid
                               table={subgrid}
                               parentKey={`${table}Id`}
@@ -190,7 +214,7 @@ function DataGrid({
             </tbody>
             <tfoot>
               <tr>
-                <td id={`${parentKey ? `subgrid${parentKey.replace("Id", "")}_${parentId}` : `datagrid_${table}`}_footer`} colSpan={fields.length}>
+                <td id={`${parentKey ? `subgrid${parentKey.replace("Id", "")}_${parentId}` : `datagrid_${table}`}_footer`} colSpan={fields.length + 1}>
                   <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                     {totalCount > 100 && (
                       <Paginator key={`${table}_paginator`} itemCount={totalCount} page={pageNumber} setPageNumber={handleSetPageNumber} gridName={table} />

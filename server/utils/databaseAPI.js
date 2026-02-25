@@ -214,6 +214,64 @@ export const addData = async (table, data) => {
   });
 };
 
+/**
+ * Update an existing row in the given table.
+ * @param {String} table
+ * @param {Number|String} id  Row primary key (must be a positive integer).
+ * @param {Object} data  Key/value pairs of column → value (id is ignored).
+ */
+export const updateData = async (table, id, data) => {
+  validateTable(table);
+  const safeId = parseInt(id, 10);
+  if (!safeId || safeId <= 0) throw new Error("id must be a positive integer.");
+
+  const columns = Object.keys(data)
+    .filter((k) => k !== "id" && data[k] !== undefined && data[k] !== "")
+    .map(validateField);
+  const values = columns.map((c) => data[c]);
+  const setClause = columns.map((c) => `${c} = ?`).join(", ");
+  const sql = `UPDATE ${table} SET ${setClause} WHERE id = ?`;
+
+  if (USE_SQLITE) {
+    const db = await sqliteDbPromise;
+    const result = await db.run(sql, [...values, safeId]);
+    return { changes: result.changes };
+  }
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [...values, safeId], (error, results) => {
+      if (error) reject(error);
+      else resolve({ changes: results.affectedRows });
+    });
+  });
+};
+
+/**
+ * Delete a row from the given table by primary key.
+ * @param {String} table
+ * @param {Number|String} id  Row primary key (must be a positive integer).
+ */
+export const deleteData = async (table, id) => {
+  validateTable(table);
+  const safeId = parseInt(id, 10);
+  if (!safeId || safeId <= 0) throw new Error("id must be a positive integer.");
+
+  const sql = `DELETE FROM ${table} WHERE id = ?`;
+
+  if (USE_SQLITE) {
+    const db = await sqliteDbPromise;
+    const result = await db.run(sql, [safeId]);
+    return { changes: result.changes };
+  }
+
+  return new Promise((resolve, reject) => {
+    connection.query(sql, [safeId], (error, results) => {
+      if (error) reject(error);
+      else resolve({ changes: results.affectedRows });
+    });
+  });
+};
+
 // ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------

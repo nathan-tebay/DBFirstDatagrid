@@ -29,4 +29,29 @@ const put = async (path, body = {}) => {
   return res.json();
 };
 
-export default { get, put };
+const patch = async (path, body = {}) => {
+  const res = await fetch(path, {
+    method: "PATCH",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Request failed: ${res.status} ${text}`);
+  }
+  return res.json();
+};
+
+const del = async (path, params = {}) => {
+  const query = buildQuery(params);
+  const url = query ? `${path}?${query}` : path;
+  const res = await fetch(url, { method: "DELETE", credentials: "same-origin" });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Request failed: ${res.status} ${text}`);
+  }
+  return res.json();
+};
+
+export default { get, put, patch, del };

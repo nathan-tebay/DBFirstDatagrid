@@ -29,6 +29,8 @@ const {
   fetchFields,
   fetchData,
   addData,
+  updateData,
+  deleteData,
   sqliteDbPromise,
 } = await import("../utils/databaseAPI.js");
 
@@ -259,5 +261,81 @@ describe("addData", () => {
       () => addData("customers", { "name; DROP TABLE customers": "x" }),
       /not in a safe format/
     );
+  });
+});
+
+// ============================================================================
+// updateData
+// ============================================================================
+
+describe("updateData", () => {
+  it("updates an existing row and returns changes=1", async () => {
+    const inserted = await addData("customers", { name: "Update Target" });
+    const result = await updateData("customers", inserted.id, { name: "Updated Name" });
+    assert.strictEqual(result.changes, 1);
+  });
+
+  it("updated value is reflected in fetchData", async () => {
+    const inserted = await addData("customers", { name: "Before Update" });
+    await updateData("customers", inserted.id, { name: "After Update" });
+    const rows = await fetchData("customers", null, `id=${inserted.id}`);
+    assert.strictEqual(rows[0].name, "After Update");
+  });
+
+  it("returns changes=0 for a non-existent id", async () => {
+    const result = await updateData("customers", 999999, { name: "Ghost" });
+    assert.strictEqual(result.changes, 0);
+  });
+
+  it("throws for a disallowed table", async () => {
+    await assert.rejects(() => updateData("users", 1, { name: "x" }), /not allowed/);
+  });
+
+  it("throws for an invalid id", async () => {
+    await assert.rejects(() => updateData("customers", 0, { name: "x" }), /positive integer/);
+    await assert.rejects(() => updateData("customers", -1, { name: "x" }), /positive integer/);
+    await assert.rejects(() => updateData("customers", "abc", { name: "x" }), /positive integer/);
+  });
+
+  it("throws for a column name containing injection characters", async () => {
+    const inserted = await addData("customers", { name: "Inject Target" });
+    await assert.rejects(
+      () => updateData("customers", inserted.id, { "name; DROP TABLE customers": "x" }),
+      /not in a safe format/
+    );
+  });
+});
+
+// ============================================================================
+// deleteData
+// ============================================================================
+
+describe("deleteData", () => {
+  it("deletes an existing row and returns changes=1", async () => {
+    const inserted = await addData("customers", { name: "Delete Target" });
+    const result = await deleteData("customers", inserted.id);
+    assert.strictEqual(result.changes, 1);
+  });
+
+  it("deleted row is no longer in fetchData", async () => {
+    const inserted = await addData("customers", { name: "To Be Deleted" });
+    await deleteData("customers", inserted.id);
+    const rows = await fetchData("customers", null, `id=${inserted.id}`);
+    assert.strictEqual(rows.length, 0);
+  });
+
+  it("returns changes=0 for a non-existent id", async () => {
+    const result = await deleteData("customers", 999998);
+    assert.strictEqual(result.changes, 0);
+  });
+
+  it("throws for a disallowed table", async () => {
+    await assert.rejects(() => deleteData("users", 1), /not allowed/);
+  });
+
+  it("throws for an invalid id", async () => {
+    await assert.rejects(() => deleteData("customers", 0), /positive integer/);
+    await assert.rejects(() => deleteData("customers", -5), /positive integer/);
+    await assert.rejects(() => deleteData("customers", "abc"), /positive integer/);
   });
 });

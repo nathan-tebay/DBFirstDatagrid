@@ -53,6 +53,26 @@ app.put("/add", (req, res) => {
     .catch((err) => res.status(500).json({ error: err.message }));
 });
 
+app.patch("/update", (req, res) => {
+  const { table, id, ...data } = req.body || {};
+  if (!table || !id) {
+    return res.status(400).json({ message: "table and id are required in the request body." });
+  }
+  db.updateData(table, id, data)
+    .then((result) => res.json(result))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
+app.delete("/delete", (req, res) => {
+  const { table, id } = req.query;
+  if (!table || !id) {
+    return res.status(400).json({ message: "table and id are required as query parameters." });
+  }
+  db.deleteData(table, id)
+    .then((result) => res.json(result))
+    .catch((err) => res.status(500).json({ error: err.message }));
+});
+
 app
   .listen(PORT, () => {
     console.log(`Server listening on ${PORT}`);
