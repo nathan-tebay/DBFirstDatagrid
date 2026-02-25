@@ -9,7 +9,7 @@ export const camelCaseToLabel = (string) => {
   string = string[0].toUpperCase() + string.slice(1);
 
   if (string[string.length - 1] === "s") {
-    string = string.replace("ies", "y").replace("s", "");
+    string = string.replace(/ies$/, "y").replace(/s$/, "");
   }
   return string;
 };

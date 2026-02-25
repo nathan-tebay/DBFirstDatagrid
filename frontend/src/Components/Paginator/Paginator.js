@@ -9,6 +9,8 @@ function Paginator({ itemCount, page, setPageNumber, gridName }) {
   const startPage = pageCount > 5 ? Math.max(1, currentPage - 2) : 1;
   const endPage = pageCount > 5 ? Math.min(pageCount, currentPage + 2) : pageCount;
 
+  if (pageCount <= 1) return null;
+
   const items = [];
 
   if (pageCount >= 2) {
