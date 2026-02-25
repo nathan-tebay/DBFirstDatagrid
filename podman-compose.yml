@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    restart: unless-stopped
+    environment:
+      DB_TYPE: sqlite
+      SQLITE_DB: /app/data/mapequipment.db
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server/certs:/app/certs:Z
+      - ./server/data:/app/data:Z
+      - ./server/sqlite_schema.sql:/app/sqlite_schema.sql:Z
+    # certs are generated at image build time; avoid running host-mounted scripts at runtime
+    command: ["sh","-c","if [ ! -f /app/data/mapequipment.db ]; then sqlite3 /app/data/mapequipment.db < /app/sqlite_schema.sql; fi && node index.js"]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - "3000:80"
+

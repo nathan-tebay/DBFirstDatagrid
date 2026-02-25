@@ -2,7 +2,7 @@ import Table from "react-bootstrap/Table";
 import Button from "react-bootstrap/Button";
 import React, { useEffect, useState } from "react";
 import { PlusCircle, DashCircle } from "react-bootstrap-icons";
-import ReactDOM from "react-dom";
+import apiClient from "../../apiClient";
 import { camelCaseToLabel } from "../../shared";
 import Paginator from "../Paginator/Paginator.js";
 
@@ -11,182 +11,76 @@ function DataGrid({
   setFieldsData,
   setLoadingState,
   setEditTable,
+  setShowEditModal,
   subgrid,
   parentKey,
   parentId,
+  refreshKey = 0,
 }) {
   const [gridLoading, setGridLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
-
-  const handleSetPageNumber = (page) => {
-    setPageNumber(page);
-  };
-
-  const handleSetGridLoading = (loading) => {
-    setGridLoading(loading);
-  };
+  const [fields, setFields] = useState([]);
+  const [data, setData] = useState([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [openSubgrids, setOpenSubgrids] = useState({});
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    let gridName = parentKey
-      ? `subgrid${parentKey.replace("Id", "")}_${parentId}`
-      : `datagrid_${table}`;
-    buildGrid(
-      table,
-      gridName,
-      subgrid,
-      parentKey && parentId ? `${parentKey}=${parentId}` : null
-    )
-      .then((results) => {
-        let fields = JSON.parse(results[0]);
-        let count = JSON.parse(results[1]);
+    let mounted = true;
+    setGridLoading(true);
+    setError(null);
+    const where = parentKey && parentId ? `${parentKey}=${parentId}` : null;
+    Promise.all([
+      apiClient.get("fetchFields", { table }),
+      apiClient.get("fetch", { table, where, page: pageNumber }),
+    ])
+      .then(([f, d]) => {
+        if (!mounted) return;
+        setFields(f || []);
+        setData(d || []);
+        setTotalCount(d?.[0]?.count || 0);
         if (setLoadingState) setLoadingState(false);
-        if (setFieldsData) setFieldsData(fields);
-        if (subgrid) {
-          let subgridToggles =
-            document.getElementsByClassName("subgrid-toggle");
-          for (const toggle of subgridToggles) {
-            let parentId = toggle.id.split("_")[1];
-            toggle.classList.add("closed");
-            ReactDOM.render(
-              <PlusCircle
-                onClick={() => toggleSubgrid(subgrid, table, parentId)}
-              />,
-              document.getElementById(toggle.id)
-            );
-          }
-
-          let toggleAll = document.getElementById("subgridToggleAll");
-          toggleAll.classList.add("closed");
-          ReactDOM.render(
-            <PlusCircle onClick={() => toggleSubgridAll()} />,
-            document.getElementById(toggleAll.id)
-          );
-        }
-
-        let footerComponents = [];
-
-        if (count > 100) {
-          footerComponents.push(
-            <Paginator
-              key={`${gridName}_paginator`}
-              itemCount={count}
-              page={pageNumber}
-              setPageNumber={handleSetPageNumber}
-              gridName={gridName}
-            />
-          );
-        }
-
-        if (table !== "canWeights") {
-          footerComponents.push(
-            <Button
-              key={`${gridName}_addButton`}
-              variant="secondary"
-              onClick={() => {
-                setEditTable(table);
-                if (setFieldsData) setFieldsData(fields);
-              }}
-            >
-              Add {camelCaseToLabel(table)}
-            </Button>
-          );
-        }
-        if (footerComponents.length > 0) {
-          ReactDOM.render(
-            footerComponents,
-            document.getElementById(`${gridName}_footer`)
-          );
-        }
+        if (setFieldsData) setFieldsData(f || []);
       })
-      .catch((error) => console.log(error));
-  }, [pageNumber]);
+      .catch((err) => {
+        if (mounted) setError(err.message || "Failed to load data.");
+        console.error(err);
+      })
+      .finally(() => {
+        if (mounted) setGridLoading(false);
+      });
+    return () => (mounted = false);
+  }, [table, parentKey, parentId, pageNumber, refreshKey]);
 
-  //used to replace click event since React does not honor them.
-  const mouseClickEvents = ["mousedown", "click", "mouseup"];
-  function simulateMouseClick(element) {
-    mouseClickEvents.forEach((mouseEventType) =>
-      element.dispatchEvent(
-        new MouseEvent(mouseEventType, {
-          view: window,
-          bubbles: true,
-          cancelable: true,
-          buttons: 1,
-        })
-      )
-    );
-  }
+  const handleSetPageNumber = (page) => setPageNumber(page);
 
-  function toggleSubgridAll() {
-    let toggleAll = document.getElementById("subgridToggleAll");
-    let subgridToggles = document.getElementsByClassName("subgrid-toggle");
-    for (const toggle of subgridToggles) {
-      if (toggleAll.classList.contains("closed")) {
-        toggleAll.classList.remove("closed");
-        toggleAll.classList.add("open");
-        ReactDOM.render(
-          <DashCircle onClick={() => toggleSubgridAll()} />,
-          toggleAll
-        );
-        if (toggle.classList.contains("closed")) {
-          simulateMouseClick(document.getElementById(toggle.id).firstChild);
-        }
-      } else {
-        toggleAll.classList.add("closed");
-        toggleAll.classList.remove("open");
-        ReactDOM.render(
-          <PlusCircle onClick={() => toggleSubgridAll()} />,
-          toggleAll
-        );
-        if (toggle.classList.contains("open")) {
-          simulateMouseClick(document.getElementById(toggle.id).firstChild);
-        }
-      }
-    }
-  }
+  const handleAdd = () => {
+    if (setEditTable) setEditTable(table);
+    if (setFieldsData) setFieldsData(fields);
+    if (setShowEditModal) setShowEditModal(true);
+  };
 
-  function toggleSubgrid(table, parentTable, parentId) {
-    let toggle = document.getElementById(`subgridToggle_${parentId}`);
-    let subgridRow = document.getElementById(`subgridRow_${parentId}`);
+  const toggleSubgrid = (id) => {
+    setOpenSubgrids((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
-    if (toggle.classList.contains("closed")) {
-      ReactDOM.render(
-        <DataGrid
-          table={table}
-          parentKey={parentTable + "Id"}
-          parentId={parentId}
-          setLoadingState={handleSetGridLoading}
-          setEditTable={setEditTable}
-          setFieldsData={setFieldsData}
-        />,
-        subgridRow,
-        () => {
-          subgridRow.parentElement.classList.remove("hidden");
-          let toggle = document.getElementById(`subgridToggle_${parentId}`);
-          toggle.classList.remove("closed");
-          toggle.classList.add("open");
-          ReactDOM.render(
-            <DashCircle
-              onClick={() => toggleSubgrid(subgrid, parentTable, parentId)}
-            />,
-            toggle
-          );
-        }
-      );
-    } else {
-      subgridRow.parentElement.classList.add("hidden");
-      toggle.classList.add("closed");
-      toggle.classList.remove("open");
-      ReactDOM.render(
-        <PlusCircle
-          onClick={() => toggleSubgrid(subgrid, parentTable, parentId)}
-        />,
-        toggle
-      );
-    }
-  }
+  const toggleSubgridAll = () => {
+    const anyClosed = Object.keys(openSubgrids).some((k) => !openSubgrids[k]);
+    const newState = {};
+    data.forEach((row) => {
+      const id = row[fields[0]?.name];
+      newState[id] = anyClosed;
+    });
+    setOpenSubgrids(newState);
+  };
 
   return (
     <>
+      {error && (
+        <div className="alert alert-danger" role="alert">
+          {error}
+        </div>
+      )}
       {gridLoading ? (
         <h3>Loading...</h3>
       ) : (
@@ -202,7 +96,115 @@ function DataGrid({
                 ? `subgrid${parentKey.replace("Id", "")}_${parentId}`
                 : `datagrid_${table}`
             }
-          ></Table>
+          >
+            <thead>
+              <tr>
+                {fields.map((f, idx) => {
+                  if (f.name === "id") {
+                    return (
+                      <th key={`th-${idx}`} id={subgrid ? "subgridToggleAll" : undefined}>
+                        {subgrid ? (
+                          <span onClick={toggleSubgridAll} style={{ cursor: "pointer" }}>
+                            {Object.keys(openSubgrids).length > 0 && Object.values(openSubgrids).every(Boolean) ? (
+                              <DashCircle />
+                            ) : (
+                              <PlusCircle />
+                            )}
+                          </span>
+                        ) : (
+                          <span className="hidden" />
+                        )}
+                      </th>
+                    );
+                  }
+                  return <th key={`th-${idx}`}>{f.displayText}</th>;
+                })}
+              </tr>
+            </thead>
+            <tbody>
+              {data.length === 0 ? (
+                <tr>
+                  <td colSpan={fields.length} style={{ textAlign: "center" }}>
+                    <h2>No records found.</h2>
+                  </td>
+                </tr>
+              ) : (
+                data.map((row, rIdx) => {
+                  const idValue = row[fields[0]?.name];
+                  return (
+                    <React.Fragment key={`row-${rIdx}-${idValue}`}>
+                      <tr>
+                        {fields.map((f, cIdx) => {
+                          const cellKey = `${rIdx}-${cIdx}`;
+                          if (f.name === "id") {
+                            return (
+                              <td key={cellKey} className={subgrid ? "subgrid-toggle" : "hidden"}>
+                                {subgrid ? (
+                                  <span onClick={() => toggleSubgrid(idValue)} style={{ cursor: "pointer" }}>
+                                    {openSubgrids[idValue] ? <DashCircle /> : <PlusCircle />}
+                                  </span>
+                                ) : null}
+                              </td>
+                            );
+                          }
+
+                          let display = "";
+                          if (f.type === "dropdown") {
+                            const items = f.items || [];
+                            const found = items.find((it) => String(it.value) === String(row[f.name]));
+                            display = found ? found.text || Object.values(found)[1] : "";
+                          } else if (f.type === "date") {
+                            display = row[f.name]
+                              ? String(row[f.name]).replace(/(\d+)-(\d+)-(\d+).*/, "$2/$3/$1")
+                              : "";
+                          } else {
+                            display = f.name !== "id" ? row[f.name] : "";
+                          }
+
+                          return (
+                            <td key={cellKey}>
+                              {display}
+                            </td>
+                          );
+                        })}
+                      </tr>
+
+                      {subgrid && openSubgrids[idValue] ? (
+                        <tr>
+                          <td colSpan={fields.length} className="subgrid-row">
+                            <DataGrid
+                              table={subgrid}
+                              parentKey={`${table}Id`}
+                              parentId={idValue}
+                              setLoadingState={setGridLoading}
+                              setEditTable={setEditTable}
+                              setFieldsData={setFieldsData}
+                            />
+                          </td>
+                        </tr>
+                      ) : null}
+                    </React.Fragment>
+                  );
+                })
+              )}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td id={`${parentKey ? `subgrid${parentKey.replace("Id", "")}_${parentId}` : `datagrid_${table}`}_footer`} colSpan={fields.length}>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    {totalCount > 100 && (
+                      <Paginator key={`${table}_paginator`} itemCount={totalCount} page={pageNumber} setPageNumber={handleSetPageNumber} gridName={table} />
+                    )}
+                    {table !== "canWeights" && (
+                      <Button variant="secondary" onClick={handleAdd}>
+                        Add {camelCaseToLabel(table)}
+                      </Button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            </tfoot>
+          </Table>
         </div>
       )}
     </>
@@ -210,120 +212,3 @@ function DataGrid({
 }
 
 export default DataGrid;
-
-const buildGrid = (table, gridName, subgrid, where) => {
-  return new Promise((resolve, reject) => {
-    fetch("fetchFields?" + encodeURI(`table=${table}`))
-      .then((res) => res.json())
-      .then((fields) => {
-        let fieldsObject = JSON.parse(fields);
-        let domTable = document.querySelector(`#${gridName}`);
-        domTable.innerText = "";
-        domTable.append(addTableHeader(fieldsObject, subgrid));
-        fetch(
-          "fetch?" +
-            encodeURI(`table=${table}${where ? `&where=${where}` : ""}`)
-        )
-          .then((res) => res.json())
-          .then((data) => {
-            let dataObject = JSON.parse(data);
-            domTable.append(addTableBody(dataObject, fieldsObject, subgrid));
-            domTable.append(addTableFooter(fields, gridName));
-
-            resolve([fields, dataObject[0]?.count || 0]);
-          })
-          .catch((error) => reject(error));
-      })
-      .catch((error) => reject(error));
-  });
-};
-
-const addTableFooter = (fields, gridName) => {
-  let footer = document.createElement("tfoot");
-  let tr = document.createElement("tr");
-  let colspan = JSON.parse(fields).length;
-  let td = document.createElement("td");
-  td.setAttribute("id", `${gridName}_footer`);
-  td.setAttribute("colspan", colspan);
-  tr.append(td);
-  footer.append(tr);
-  return footer;
-};
-
-const addTableHeader = (fields, subgrid) => {
-  let head = document.createElement("thead");
-  let tr = document.createElement("tr");
-  let keys = Object.keys(fields);
-  keys.forEach((key) => {
-    let th = document.createElement("th");
-    if (fields[key].name === "id") {
-      if (subgrid) {
-        th.setAttribute("id", "subgridToggleAll");
-      } else {
-        th.classList.add("hidden");
-      }
-    } else {
-      th.innerText = fields[key].displayText;
-    }
-    tr.append(th);
-  });
-  head.append(tr);
-  return head;
-};
-
-const addTableBody = (data, fields, subgrid) => {
-  let body = document.createElement("tbody");
-
-  let keys = Object.keys(fields);
-
-  if (data.length === 0) {
-    let tr = document.createElement("tr");
-    let td = document.createElement("td");
-    td.setAttribute("colspan", keys.length);
-    td.style.textAlign = "center";
-    td.innerHTML = "<h2>No records found.</h2>";
-    tr.append(td);
-    body.append(tr);
-  }
-
-  data.forEach((element) => {
-    let tr = document.createElement("tr");
-    keys.forEach((key) => {
-      let td = document.createElement("td");
-
-      if (fields[key].name === "id") {
-        if (subgrid) {
-          td.classList.add("subgrid-toggle");
-          td.setAttribute("id", `subgridToggle_${element[fields[0].name]}`);
-        } else {
-          td.classList.add("hidden");
-        }
-      }
-
-      if (fields[key].type === "dropdown") {
-        td.innerText = fields[key].items[element[fields[key].name]];
-      } else if (fields[key].type === "date") {
-        td.innerText = element[fields[key].name].replace(
-          /(\d+)-(\d+)-(\d+).*/,
-          "$2/$3/$1"
-        );
-      } else {
-        if (fields[key].name !== "id") td.innerText = element[fields[key].name];
-      }
-      tr.append(td);
-    });
-    body.append(tr);
-
-    if (subgrid) {
-      let tr = document.createElement("tr");
-      tr.classList.add("hidden");
-      let td = document.createElement("td");
-      td.setAttribute("colspan", keys.length);
-      td.classList.add("subgrid-row");
-      td.setAttribute("id", `subgridRow_${element[fields[0].name]}`);
-      tr.append(td);
-      body.append(tr);
-    }
-  });
-  return body;
-};

@@ -10,6 +10,7 @@ function Inventory() {
   const [fields, setFields] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTable, setEditTable] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const hideEditModal = () => {
     setShowEditModal(false);
@@ -28,6 +29,10 @@ function Inventory() {
     setShowEditModal(true);
   };
 
+  const handleSaved = () => {
+    setRefreshKey((k) => k + 1);
+  };
+
   return (
     <>
       <h2>{pageName}</h2>
@@ -37,6 +42,7 @@ function Inventory() {
         setLoadingState={handleSetLoading}
         setEditTable={handleSetEditTable}
         subgrid="inventoryOrders"
+        refreshKey={refreshKey}
       ></DataGrid>
 
       <EditModal
@@ -44,6 +50,7 @@ function Inventory() {
         hideEditModal={hideEditModal}
         showEditModal={showEditModal}
         table={editTable}
+        onSaved={handleSaved}
       ></EditModal>
 
       {loading ? <h3>Loading...</h3> : ""}

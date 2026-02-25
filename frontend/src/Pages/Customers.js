@@ -9,6 +9,7 @@ function Customers() {
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleShowEditModal = () => {
     setShowEditModal(true);
@@ -25,6 +26,10 @@ function Customers() {
     setFields(fields);
   };
 
+  const handleSaved = () => {
+    setRefreshKey((k) => k + 1);
+  };
+
   return (
     <>
       <h2>{pageName}s</h2>
@@ -33,6 +38,7 @@ function Customers() {
         setFieldsData={handleSetField}
         setLoadingState={handleSetLoading}
         setShowEditModal={handleShowEditModal}
+        refreshKey={refreshKey}
       ></DataGrid>
 
       <EditModal
@@ -40,6 +46,7 @@ function Customers() {
         hideEditModal={hideEditModal}
         showEditModal={showEditModal}
         table={"customers"}
+        onSaved={handleSaved}
       ></EditModal>
 
       {loading ? <h3>Loading...</h3> : ""}

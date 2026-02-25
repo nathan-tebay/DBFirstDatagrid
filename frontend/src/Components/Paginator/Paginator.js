@@ -1,99 +1,81 @@
-import { useEffect } from "react";
 import { Pagination } from "react-bootstrap";
-import ReactDOM from "react-dom";
 
 function Paginator({ itemCount, page, setPageNumber, gridName }) {
-  useEffect(() => {
-    let paginatorId = `${gridName}_paginator`;
-    let pageCount = Math.floor(itemCount / 100);
+  const pageSize = 100;
+  const pageCount = Math.max(1, Math.ceil(itemCount / pageSize));
+  const currentPage = parseInt(page) || 1;
 
-    let startPage =
-      pageCount > 5 ? (parseInt(page) > 2 ? parseInt(page) - 2 : 1) : 1;
-    let endPage =
-      pageCount > 5
-        ? parseInt(page) + 2 < pageCount
-          ? 5
-          : pageCount
-        : pageCount;
+  // Show a sliding window of up to 5 pages centred on the current page.
+  const startPage = pageCount > 5 ? Math.max(1, currentPage - 2) : 1;
+  const endPage = pageCount > 5 ? Math.min(pageCount, currentPage + 2) : pageCount;
 
-    const handlePageChange = (page) => {
-      setPageNumber(page);
-    };
-    let paginatorComponents = [];
+  const items = [];
 
-    if (pageCount >= 2)
-      paginatorComponents.push(
-        <Pagination.Prev
-          key={`${gridName}_prevButton`}
-          pageNumber={page - 1 > 0 ? page - 1 : page}
-          onClick={(item) => handlePageChange(item)}
-        />
-      );
-
-    if (pageCount >= 6 && page >= 4)
-      paginatorComponents.push(
-        <Pagination.Item
-          key={`${gridName}_pageNumber_1`}
-          pageNumber={1}
-          onClick={(item) => handlePageChange(item)}
-        >
-          {1}
-        </Pagination.Item>
-      );
-    if (pageCount >= 8 && page > 4)
-      paginatorComponents.push(
-        <Pagination.Ellipsis key={`${gridName}_startEllipsis`} />
-      );
-
-    for (var pageNumber = startPage; pageNumber <= endPage; pageNumber++) {
-      paginatorComponents.push(
-        <Pagination.Item
-          key={`${gridName}_pageNumber_${pageNumber}`}
-          active={pageNumber === parseInt(page)}
-          pageNumber={pageNumber}
-          onClick={(item) => handlePageChange(item)}
-        >
-          {pageNumber}
-        </Pagination.Item>
-      );
-    }
-
-    if (pageCount >= 8 && page < pageCount - 3)
-      paginatorComponents.push(
-        <Pagination.Ellipsis key={`${gridName}_endEllipsis`} />
-      );
-
-    if (pageCount >= 7)
-      paginatorComponents.push(
-        <Pagination.Item
-          key={`${gridName}_pageNumber_${pageCount}`}
-          pageNumber={pageCount}
-          onClick={(item) => handlePageChange(item)}
-        >
-          {pageCount}
-        </Pagination.Item>
-      );
-    if (pageCount >= 2)
-      paginatorComponents.push(
-        <Pagination.Next
-          key={`${gridName}_nextButton`}
-          pageNumber={page + 1 > page ? page : page + 1}
-          onClick={(item) => handlePageChange(item)}
-        />
-      );
-
-    ReactDOM.render(
-      paginatorComponents,
-      document.getElementById(`${paginatorId}`)
+  if (pageCount >= 2) {
+    items.push(
+      <Pagination.Prev
+        key={`${gridName}_prev`}
+        disabled={currentPage <= 1}
+        onClick={() => setPageNumber(Math.max(1, currentPage - 1))}
+      />
     );
-  }, []);
+  }
+
+  // Always show page 1 when the window has scrolled away from it.
+  if (pageCount >= 6 && currentPage >= 4) {
+    items.push(
+      <Pagination.Item key={`${gridName}_p1`} onClick={() => setPageNumber(1)}>
+        {1}
+      </Pagination.Item>
+    );
+  }
+
+  if (pageCount >= 8 && currentPage > 4) {
+    items.push(<Pagination.Ellipsis key={`${gridName}_startEllipsis`} disabled />);
+  }
+
+  for (let p = startPage; p <= endPage; p++) {
+    items.push(
+      <Pagination.Item
+        key={`${gridName}_p${p}`}
+        active={p === currentPage}
+        onClick={() => setPageNumber(p)}
+      >
+        {p}
+      </Pagination.Item>
+    );
+  }
+
+  if (pageCount >= 8 && currentPage < pageCount - 3) {
+    items.push(<Pagination.Ellipsis key={`${gridName}_endEllipsis`} disabled />);
+  }
+
+  // Always show the last page when the window has scrolled away from it.
+  if (pageCount >= 7) {
+    items.push(
+      <Pagination.Item
+        key={`${gridName}_plast`}
+        onClick={() => setPageNumber(pageCount)}
+      >
+        {pageCount}
+      </Pagination.Item>
+    );
+  }
+
+  if (pageCount >= 2) {
+    items.push(
+      <Pagination.Next
+        key={`${gridName}_next`}
+        disabled={currentPage >= pageCount}
+        onClick={() => setPageNumber(Math.min(pageCount, currentPage + 1))}
+      />
+    );
+  }
 
   return (
-    <Pagination
-      variant="dark"
-      id={`${gridName}_paginator`}
-      key={`${gridName}_paginator`}
-    ></Pagination>
+    <Pagination variant="dark" id={`${gridName}_paginator`}>
+      {items}
+    </Pagination>
   );
 }
 

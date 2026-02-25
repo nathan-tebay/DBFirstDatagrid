@@ -11,7 +11,7 @@ function Data() {
 
   return (
     <>
-      <h2 class="w-100">Can Weights</h2>
+      <h2 className="w-100">Can Weights</h2>
       <br />
 
       <DataGrid

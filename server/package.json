@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "devStart": "nodemon index.js"
+    "devStart": "nodemon index.js",
+    "test": "DB_TYPE=sqlite SQLITE_DB=:memory: node --test __tests__/server.test.js"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +20,8 @@
     "express": "^4.17.1",
     "mysql": "^2.18.1",
     "mysql-utilities": "^1.1.3",
+    "sqlite": "^4.0.23",
+    "sqlite3": "^5.1.6",
     "pluralize": "^8.0.0",
     "uuid": "^7.0.3"
   },

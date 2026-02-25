@@ -1,226 +1,154 @@
-import { useEffect, useState } from "react";
-import ReactDOM from "react-dom";
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from "react";
 import { Form, Button, Row, Col } from "react-bootstrap";
 import React from "react";
+import apiClient from "../../apiClient";
 
-function EditForm({ fields, saveComplete, table }) {
+const EditForm = forwardRef(function EditForm({ fields, saveComplete, table }, ref) {
   const [validated, setValidated] = useState(false);
+  const [values, setValues] = useState({});
+  const [saveError, setSaveError] = useState(null);
+  const formRef = useRef(null);
 
-  const handleSubmit = (event) => {
+  useEffect(() => {
+    if (!fields) {
+      setValues({});
+      return;
+    }
+    const initial = {};
+    Object.keys(fields).forEach((k) => {
+      const field = fields[k];
+      if (field.name === "id") initial[field.name] = field.value || "";
+      else if (field.type === "boolean") initial[field.name] = !!field.value;
+      else initial[field.name] = field.value ?? "";
+    });
+    setValues(initial);
+    setValidated(false);
+    setSaveError(null);
+  }, [fields, table]);
+
+  const handleChange = (e, field) => {
+    const name = field.name;
+    let val;
+    if (field.type === "boolean") {
+      val = e.target.checked;
+    } else {
+      val = e.target.value;
+    }
+    setValues((prev) => ({ ...prev, [name]: val }));
+  };
+
+  const handleSubmit = async (event) => {
     const form = event.currentTarget;
     if (form.checkValidity() === false) {
       event.preventDefault();
       event.stopPropagation();
-    } else {
-      if (saveComplete) {
-      }
+      setValidated(true);
+      return;
     }
+    event.preventDefault();
     setValidated(true);
+    setSaveError(null);
+    try {
+      await apiClient.put("add", { table, ...values });
+      if (saveComplete) saveComplete();
+    } catch (err) {
+      setSaveError(err.message || "Save failed. Please try again.");
+    }
   };
 
-  useEffect(
-    () =>
-      ReactDOM.render(
-        addEditor(fields),
-        document.getElementById("addEditForm")
-      ),
-    [fields, table]
-  );
+  useImperativeHandle(ref, () => ({
+    submit: () => {
+      if (formRef.current) {
+        if (typeof formRef.current.requestSubmit === "function") {
+          formRef.current.requestSubmit();
+        } else {
+          const evt = new Event("submit", { bubbles: true, cancelable: true });
+          formRef.current.dispatchEvent(evt);
+        }
+      }
+    },
+  }));
+
+  if (!fields) return null;
+
   return (
-    <Form
-      id="addEditForm"
-      noValidate
-      validated={validated}
-      onSubmit={handleSubmit}
-    ></Form>
-  );
-}
+    <Form ref={formRef} id="addEditForm" noValidate validated={validated} onSubmit={handleSubmit}>
+      {saveError && (
+        <div className="alert alert-danger" role="alert">
+          {saveError}
+        </div>
+      )}
+      {Object.keys(fields).map((k) => {
+        const field = fields[k];
+        const controlId = field.name;
+        const required = field.required && field.name !== "id";
 
-export default EditForm;
-
-const addEditor = (fields, subGrid) => {
-  let keys = Object.keys(fields);
-
-  const createInputField = (field, props) => {
-    let formInput = [];
-    let fieldProps = [];
-
-    if (field.length) fieldProps.maxLength = field.length;
-    if (field.decimals === 2) fieldProps.step = ".01";
-    if (field.name === "id") fieldProps.style = { display: "none" };
-    if (field.required && field.name !== "id") fieldProps.required = "required";
-
-    switch (field.type) {
-      case "dropdown":
-        let options = [];
-        options.push(
-          React.createElement(
-            "option",
-            { key: `option${field.name}default` },
-            "Select Item"
-          )
-        );
-        field.items?.forEach((item) => {
-          let optionProps = {
-            value: item.value,
-            key: `option${field.name}${item.value}`,
+        const input = (() => {
+          const commonProps = {
+            id: controlId,
+            value: values[controlId] ?? "",
+            onChange: (e) => handleChange(e, field),
+            required: required || undefined,
+            maxLength: field.length || undefined,
+            step: field.decimals === 2 ? ".01" : undefined,
+            type: field.type === "number" ? "number" : undefined,
           };
 
-          for (const attribute of Object.keys(item).filter((key) =>
-            key.toString().startsWith("data-")
-          )) {
-            optionProps[attribute] = item[attribute];
+          switch (field.type) {
+            case "dropdown":
+              return (
+                <Form.Select {...commonProps} aria-label={field.displayText}>
+                  <option value="">Select Item</option>
+                  {field.items?.map((item, idx) => (
+                    <option key={`${controlId}-option-${idx}`} value={item.value} {...Object.fromEntries(Object.entries(item).filter(([kk]) => kk.startsWith("data-")))}>
+                      {item.text}
+                    </option>
+                  ))}
+                </Form.Select>
+              );
+            case "date":
+              return <Form.Control {...commonProps} type="date" />;
+            case "time":
+              return <Form.Control {...commonProps} type="time" />;
+            case "datetime":
+              return <Form.Control {...commonProps} type="datetime-local" />;
+            case "number":
+              return <Form.Control {...commonProps} type="number" />;
+            case "boolean":
+              return (
+                <Form.Check
+                  id={controlId}
+                  checked={!!values[controlId]}
+                  onChange={(e) => handleChange(e, field)}
+                  type="checkbox"
+                />
+              );
+            default:
+              if (parseInt(field.length) > 255) {
+                return <Form.Control as="textarea" style={{ height: "100px" }} {...commonProps} />;
+              }
+              return <Form.Control {...commonProps} type={field.name.indexOf("email") !== -1 ? "email" : "text"} />;
           }
+        })();
 
-          let option = React.createElement("option", optionProps, item.text);
-          options.push(option);
-        });
-        formInput.push(
-          React.createElement(Form.Select, { ...props, ...fieldProps }, options)
+        return (
+          <Form.Group as={Row} className="mb-2" controlId={controlId} key={`formGroup-${controlId}`}>
+            {field.name === "id" ? null : (
+              <Form.Label column sm={4} className="text-right">
+                {field.displayText}
+              </Form.Label>
+            )}
+            <Col sm={8}>
+              {input}
+              {required && <Form.Control.Feedback type="invalid">{`${field.displayText} is required.`}</Form.Control.Feedback>}
+            </Col>
+          </Form.Group>
         );
-        break;
-      case "number": {
-        formInput.push(
-          React.createElement(Form.Control, {
-            ...props,
-            ...fieldProps,
-            type: "number",
-          })
-        );
-        break;
-      }
-      case "date": {
-        formInput.push(
-          React.createElement(Form.Control, {
-            ...props,
-            ...fieldProps,
-            type: "date",
-          })
-        );
-        break;
-      }
-      case "time": {
-        formInput.push(
-          React.createElement(Form.Control, {
-            ...props,
-            ...fieldProps,
-            type: "time",
-          })
-        );
-        break;
-      }
-      case "datetime": {
-        formInput.push(
-          React.createElement(Form.Control, {
-            ...props,
-            ...fieldProps,
-            type: "date",
-          })
-        );
-        break;
-      }
-      case "text": {
-        props.type = "text";
-        if (field.name.indexOf("email") !== -1) {
-          props.type = "email";
-        }
-        if (parseInt(field.length) > 255) {
-          props.as = "textarea";
-          props.type = null;
-          props.style = { height: "100px" };
-        }
+      })}
 
-        formInput.push(
-          React.createElement(Form.Control, { ...props, ...fieldProps })
-        );
-        break;
-      }
-      case "boolean": {
-        formInput.push(
-          React.createElement(Form.Control, {
-            ...props,
-            ...fieldProps,
-            type: "checkbox",
-          })
-        );
-        break;
-      }
-      default:
-    }
-    return formInput;
-  };
-
-  let formFields = [];
-  keys.forEach((key) => {
-    let field = fields[key];
-
-    let props = {
-      sm: 8,
-      key: field.name,
-    };
-
-    let formLabel =
-      field.name === "id"
-        ? []
-        : React.createElement(
-            Form.Label,
-            {
-              ...props,
-              column: "column",
-              sm: 4,
-              key: `label${field.name}`,
-              className: "text-right",
-            },
-            field.displayText
-          );
-
-    let formFeedbackInvalid =
-      field.name !== "id" && field.required
-        ? React.createElement(
-            Form.Control.Feedback,
-            {
-              key: `feedbackInvalid${field.name}`,
-              type: "invalid",
-            },
-            `${field.displayText} is required.`
-          )
-        : [];
-
-    let fieldColDiv = React.createElement(
-      Col,
-      {
-        sm: 8,
-        key: `column${field.name}`,
-      },
-      createInputField(field, props)
-    );
-
-    formFields.push(
-      React.createElement(
-        Form.Group,
-        {
-          as: Row,
-          key: `formGroup${field.name}`,
-          className: "mb-2",
-          controlId: `${field.name}`,
-        },
-        [formLabel, fieldColDiv, formFeedbackInvalid]
-      )
-    );
-  });
-
-  formFields.push(
-    React.createElement(
-      Button,
-      {
-        key: "submitButton",
-        type: "submit",
-        id: "addEditSubmit",
-        style: { display: "none" },
-      },
-      "Submit"
-    )
+      <Button type="submit" style={{ display: "none" }}>Submit</Button>
+    </Form>
   );
+});
 
-  return formFields;
-};
+export default EditForm;

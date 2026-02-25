@@ -4,12 +4,13 @@ import DataGrid from "../Components/DataGrid/DataGrid.js";
 
 import React, { useState } from "react";
 
-function Inventory() {
+function Orders() {
   const pageName = "Order";
   const [loading, setLoading] = useState(true);
   const [fields, setFields] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editTable, setEditTable] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleShowEditModal = () => {
     setShowEditModal(true);
@@ -32,6 +33,10 @@ function Inventory() {
     setShowEditModal(true);
   };
 
+  const handleSaved = () => {
+    setRefreshKey((k) => k + 1);
+  };
+
   return (
     <>
       <h2>{pageName}s</h2>
@@ -42,6 +47,7 @@ function Inventory() {
         setEditTable={handleSetEditTable}
         setShowEditModal={handleShowEditModal}
         subgrid="orderItems"
+        refreshKey={refreshKey}
       ></DataGrid>
 
       <EditModal
@@ -49,6 +55,7 @@ function Inventory() {
         hideEditModal={hideEditModal}
         showEditModal={showEditModal}
         table={editTable}
+        onSaved={handleSaved}
       ></EditModal>
 
       {loading ? <h3>Loading...</h3> : ""}
@@ -56,4 +63,4 @@ function Inventory() {
   );
 }
 
-export default Inventory;
+export default Orders;
