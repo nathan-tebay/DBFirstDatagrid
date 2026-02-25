@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**GitHub remote:** https://github.com/nathan-tebay/DBFirstDatagrid
+
 ## Project Overview
 
 MAPDashboard is a full-stack equipment management dashboard. It has a React frontend (`frontend/`) and an Express API server (`server/`) that supports both SQLite (default/dev) and MySQL.
