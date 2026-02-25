@@ -1,4 +1,4 @@
-FROM node:18-alpine AS build
+FROM node:22-alpine AS build
 
 WORKDIR /app
 
@@ -7,7 +7,6 @@ RUN npm install --no-audit --no-fund
 
 # copy source and build
 COPY frontend/ ./
-ENV NODE_OPTIONS=--openssl-legacy-provider
 RUN npm run build
 
 FROM nginx:stable-alpine

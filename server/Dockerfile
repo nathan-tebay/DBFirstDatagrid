@@ -1,13 +1,13 @@
-FROM node:18-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
 # copy server package manifest and install
-COPY server/package*.json ./
+COPY package*.json ./
 RUN npm install --omit=dev --no-audit --no-fund
 
 # copy server sources
-COPY server/ ./
+COPY / ./
 
 # ensure the runtime helper script is executable
 RUN chmod +x scripts/generate_certs.sh || true

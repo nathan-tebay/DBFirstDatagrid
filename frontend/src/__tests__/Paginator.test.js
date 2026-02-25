@@ -63,33 +63,36 @@ describe("Paginator", () => {
 
   // ── onClick callbacks ─────────────────────────────────────────────────────
 
-  test("clicking a page number calls setPageNumber with that number", () => {
+  test("clicking a page number calls setPageNumber with that number", async () => {
+    const user = userEvent.setup();
     const setPageNumber = jest.fn();
     render(
       <Paginator itemCount={500} page={3} setPageNumber={setPageNumber} gridName="g" />
     );
-    userEvent.click(screen.getByText("4"));
+    await user.click(screen.getByText("4"));
     expect(setPageNumber).toHaveBeenCalledWith(4);
   });
 
-  test("clicking Prev calls setPageNumber with page - 1", () => {
+  test("clicking Prev calls setPageNumber with page - 1", async () => {
+    const user = userEvent.setup();
     const setPageNumber = jest.fn();
     const { container } = render(
       <Paginator itemCount={500} page={3} setPageNumber={setPageNumber} gridName="g" />
     );
     const prevLink = container.querySelector(".page-item:first-child .page-link");
-    userEvent.click(prevLink);
+    await user.click(prevLink);
     expect(setPageNumber).toHaveBeenCalledWith(2);
   });
 
-  test("clicking Next calls setPageNumber with page + 1", () => {
+  test("clicking Next calls setPageNumber with page + 1", async () => {
+    const user = userEvent.setup();
     const setPageNumber = jest.fn();
     const { container } = render(
       <Paginator itemCount={500} page={3} setPageNumber={setPageNumber} gridName="g" />
     );
     const items = container.querySelectorAll(".page-item");
     const nextLink = items[items.length - 1].querySelector(".page-link");
-    userEvent.click(nextLink);
+    await user.click(nextLink);
     expect(setPageNumber).toHaveBeenCalledWith(4);
   });
 

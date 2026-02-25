@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -6,10 +6,6 @@ COPY frontend/package*.json ./
 RUN npm install --no-audit --no-fund
 
 COPY frontend/ ./
-
-# Required by webpack/react-scripts on Node 17+ (OpenSSL legacy hash support).
-# Also prevents occasional test-environment crashes on Node 18.
-ENV NODE_OPTIONS=--openssl-legacy-provider
 
 # --watchAll=false: run once and exit (no interactive watch prompt in container).
 CMD ["npm", "test", "--", "--watchAll=false"]

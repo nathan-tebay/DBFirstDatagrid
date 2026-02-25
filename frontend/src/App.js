@@ -1,5 +1,5 @@
 import "./App.css";
-import { Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Customers from "./Pages/Customers.js";
 import Orders from "./Pages/Orders.js";
 import Inventory from "./Pages/Inventory.js";
@@ -9,11 +9,13 @@ import Home from "./Pages/Home.js";
 function App() {
   return (
     <div className="App">
-      <Route path="/customers" component={Customers} />
-      <Route path="/orders" component={Orders} />
-      <Route path="/inventory" component={Inventory} />
-      <Route path="/data" component={Data} />
-      <Route path="/" exact component={Home} />
+      <Routes>
+        <Route path="/customers" element={<Customers />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/inventory" element={<Inventory />} />
+        <Route path="/data" element={<Data />} />
+        <Route path="/" element={<Home />} />
+      </Routes>
     </div>
   );
 }
