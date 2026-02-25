@@ -7,7 +7,10 @@
     "devServer": "cd server && npm run devStart",
     "server": "cd server && npm start",
     "start": "concurrently \"npm run frontend\" \"npm run server\" ",
-    "devStart": "concurrently \"npm run frontend\" \"npm run devServer\" "
+    "devStart": "concurrently \"npm run frontend\" \"npm run devServer\" ",
+    "test": "npm run test:server && npm run test:frontend",
+    "test:server": "podman-compose -f podman-compose.test.yml build server-test && podman-compose -f podman-compose.test.yml run --rm server-test",
+    "test:frontend": "podman-compose -f podman-compose.test.yml build frontend-test && podman-compose -f podman-compose.test.yml run --rm frontend-test"
   },
   "main": "index.js",
   "author": "Nathan Tebay",

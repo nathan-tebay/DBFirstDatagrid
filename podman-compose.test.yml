@@ -1,0 +1,11 @@
+version: "3.8"
+services:
+  server-test:
+    build:
+      context: .
+      dockerfile: server/Dockerfile.test
+
+  frontend-test:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile.test

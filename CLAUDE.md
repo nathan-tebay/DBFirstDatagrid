@@ -26,15 +26,18 @@ cd server && npm run devStart   # Express with nodemon on :3001
 
 ### Testing
 
-Frontend tests (Jest, from `frontend/`):
+Run in Podman (from repo root — recommended):
 ```bash
-cd frontend && npm test                        # interactive watch mode
-cd frontend && npm test -- --watchAll=false    # single run (CI)
-cd frontend && npm test -- --testPathPattern=Menu   # single test file
+npm test               # build images and run both test suites
+npm run test:server    # server tests only
+npm run test:frontend  # frontend tests only
 ```
 
-Server tests (Node.js built-in test runner, from `server/`):
+Run locally without Podman:
 ```bash
+cd frontend && npm test                        # interactive watch mode
+cd frontend && npm test -- --watchAll=false    # single run
+cd frontend && npm test -- --testPathPattern=Menu   # single test file
 cd server && npm test     # runs __tests__/server.test.js against in-memory SQLite
 ```
 
@@ -85,6 +88,8 @@ Express 4, ES Modules (`"type": "module"`). A single `index.js` maps HTTP routes
 | GET | `/fetchFields` | Field metadata for a table (type, required, dropdown items) |
 | GET | `/fetchDistinct` | Distinct values. Params: `table`, `fields` (CSV), `where` |
 | PUT | `/add` | Insert a row. Body: `{ table, ...columnValues }` |
+| PATCH | `/update` | Update a row. Body: `{ table, id, ...columnValues }` |
+| DELETE | `/delete` | Delete a row. Params: `table`, `id` |
 
 **Database abstraction (`databaseAPI.js`):**
 - Switches between SQLite and MySQL based on `DB_TYPE=sqlite` / `SQLITE_DB` env vars.
