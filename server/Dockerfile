@@ -9,11 +9,6 @@ RUN npm install --omit=dev --no-audit --no-fund
 # copy server sources
 COPY / ./
 
-# databaseAPI.js imports from "../../frontend/src/shared.js"; from /app/utils/
-# that resolves to /frontend/src/shared.js — mirror the same fix as Dockerfile.test
-RUN mkdir -p /frontend/src && printf '{"type":"module"}' > /frontend/package.json
-COPY ../frontend/src/shared.js /frontend/src/shared.js
-
 # ensure the runtime helper script is executable
 RUN chmod +x scripts/generate_certs.sh || true
 

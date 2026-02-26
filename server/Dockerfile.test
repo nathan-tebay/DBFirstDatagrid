@@ -11,12 +11,4 @@ RUN npm install --no-audit --no-fund
 
 COPY server/ ./
 
-# databaseAPI.js contains: import { camelCaseToLabel } from "../../frontend/src/shared.js"
-# From /app/utils/ (where databaseAPI.js lives), ../../ resolves to /
-# so the file must exist at /frontend/src/shared.js inside the container.
-# A package.json with "type":"module" is required so Node.js treats the
-# .js file as ESM (without it Node defaults to CJS and the named export is lost).
-RUN mkdir -p /frontend/src && printf '{"type":"module"}' > /frontend/package.json
-COPY frontend/src/shared.js /frontend/src/shared.js
-
 CMD ["npm", "test"]

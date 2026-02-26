@@ -2,7 +2,7 @@ import mysql from "mysql";
 import mysqlutils from "mysql-utilities";
 import * as fs from "fs";
 import pluralize from "pluralize";
-import { camelCaseToLabel } from "../../frontend/src/shared.js";
+import { camelCaseToLabel } from "./shared.js";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
