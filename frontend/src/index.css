@@ -29,8 +29,40 @@ code {
 }
 
 input,
-select {
-  background-color: var(--bs-gray-400) !important;
+select,
+textarea,
+.form-control,
+.form-select {
+  background-color: var(--bs-gray-500) !important;
+  border-color: var(--bs-gray-500) !important;
+  color: var(--bs-gray-900) !important;
+}
+
+input::placeholder,
+textarea::placeholder,
+.form-control::placeholder {
+  color: var(--bs-gray-600) !important;
+  opacity: 1;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+.form-control:focus,
+.form-select:focus {
+  background-color: var(--bs-white) !important;
+  border-color: var(--bs-info) !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 202, 240, 0.35) !important;
+  color: var(--bs-gray-900) !important;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled,
+.form-control:disabled,
+.form-select:disabled {
+  background-color: var(--bs-gray-300) !important;
+  color: var(--bs-gray-700) !important;
 }
 
 /* Make table body scrollable with a fixed header */

@@ -6,10 +6,5 @@ export const camelCaseToLabel = (string) => {
   if (string === "") return string;
 
   string = string.replace(/(.*)([A-Z])(.*)/g, "$1 $2$3");
-  string = string[0].toUpperCase() + string.slice(1);
-
-  if (string[string.length - 1] === "s") {
-    string = string.replace(/ies$/, "y").replace(/s$/, "");
-  }
-  return string;
+  return string[0].toUpperCase() + string.slice(1);
 };

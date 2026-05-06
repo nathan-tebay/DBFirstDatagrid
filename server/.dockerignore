@@ -3,3 +3,5 @@ node_modules
 npm-debug.log
 certs
 Dockerfile
+__tests__
+data

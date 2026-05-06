@@ -3,3 +3,8 @@ build
 .env
 npm-debug.log
 Dockerfile
+README.md
+src/**/*.test.js
+src/**/__tests__
+src/setupTests.js
+src/Resources/**

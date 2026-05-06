@@ -13,6 +13,7 @@ function DataGrid({
   setEditTable,
   setShowEditModal,
   subgrid,
+  subgridKey,
   parentKey,
   parentId,
   refreshKey = 0,
@@ -56,8 +57,11 @@ function DataGrid({
   const handleSetPageNumber = (page) => setPageNumber(page);
 
   const handleAdd = () => {
+    const enrichedFields = parentKey && parentId
+      ? fields.map((f) => f.name === parentKey ? { ...f, value: parentId } : f)
+      : fields;
     if (setEditTable) setEditTable(table);
-    if (setFieldsData) setFieldsData(fields);
+    if (setFieldsData) setFieldsData(enrichedFields);
     if (setShowEditModal) setShowEditModal(true);
   };
 
@@ -116,23 +120,22 @@ function DataGrid({
               <tr>
                 {fields.map((f, idx) => {
                   if (f.name === "id") {
+                    if (!subgrid) return (
+                       <th class="hidden"></th>
+                    );
                     return (
-                      <th key={`th-${idx}`} id={subgrid ? "subgridToggleAll" : undefined}>
-                        {subgrid ? (
-                          <span onClick={toggleSubgridAll} style={{ cursor: "pointer" }}>
-                            {Object.keys(openSubgrids).length > 0 && Object.values(openSubgrids).every(Boolean) ? (
-                              <DashCircle />
-                            ) : (
-                              <PlusCircle />
-                            )}
-                          </span>
-                        ) : (
-                          <span className="hidden" />
-                        )}
+                      <th key={`th-${idx}`} id="subgridToggleAll">
+                        <span onClick={toggleSubgridAll} style={{ cursor: "pointer" }}>
+                          {Object.keys(openSubgrids).length > 0 && Object.values(openSubgrids).every(Boolean) ? (
+                            <DashCircle />
+                          ) : (
+                            <PlusCircle />
+                          )}
+                        </span>
                       </th>
                     );
                   }
-                  return <th key={`th-${idx}`}>{f.displayText}</th>;
+                return <th key={`th-${idx}`}>{f.displayText}</th>;
                 })}
                 <th>Actions</th>
               </tr>
@@ -153,13 +156,12 @@ function DataGrid({
                         {fields.map((f, cIdx) => {
                           const cellKey = `${rIdx}-${cIdx}`;
                           if (f.name === "id") {
+                            if (!subgrid) return null;
                             return (
-                              <td key={cellKey} className={subgrid ? "subgrid-toggle" : "hidden"}>
-                                {subgrid ? (
-                                  <span onClick={() => toggleSubgrid(idValue)} style={{ cursor: "pointer" }}>
-                                    {openSubgrids[idValue] ? <DashCircle /> : <PlusCircle />}
-                                  </span>
-                                ) : null}
+                              <td key={cellKey} className="subgrid-toggle">
+                                <span onClick={() => toggleSubgrid(idValue)} style={{ cursor: "pointer" }}>
+                                  {openSubgrids[idValue] ? <DashCircle /> : <PlusCircle />}
+                                </span>
                               </td>
                             );
                           }
@@ -198,7 +200,7 @@ function DataGrid({
                           <td colSpan={fields.length + 1} className="subgrid-row">
                             <DataGrid
                               table={subgrid}
-                              parentKey={`${table}Id`}
+                              parentKey={subgridKey || `${table}Id`}
                               parentId={idValue}
                               setLoadingState={setGridLoading}
                               setEditTable={setEditTable}

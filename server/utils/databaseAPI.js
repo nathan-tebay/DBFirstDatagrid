@@ -1,12 +1,10 @@
-import mysql from "mysql";
-import mysqlutils from "mysql-utilities";
 import * as fs from "fs";
-import pluralize from "pluralize";
 import { camelCaseToLabel } from "./shared.js";
 import sqlite3 from "sqlite3";
 import { open } from "sqlite";
 
 const USE_SQLITE = (process.env.DB_TYPE === "sqlite" || process.env.DB_CLIENT === "sqlite" || !!process.env.SQLITE_DB);
+const DEMO_ROW_LIMIT = 20;
 
 // ---------------------------------------------------------------------------
 // Input validation helpers – block SQL injection at the boundary.
@@ -65,6 +63,8 @@ if (USE_SQLITE) {
   sqlite3.verbose();
   sqliteDbPromise = open({ filename: dbPath, driver: sqlite3.Database });
 } else {
+  const mysql = await import("mysql");
+  const mysqlutils = await import("mysql-utilities");
   const connectionDetails = {
     host: process.env.DB_ENDPOINT,
     user: process.env.DB_USER,
@@ -78,9 +78,9 @@ if (USE_SQLITE) {
     connectionDetails.ssl = { ca: fs.readFileSync(caPath) };
   }
 
-  connection = mysql.createConnection(connectionDetails);
-  mysqlutils.upgrade(connection);
-  mysqlutils.introspection(connection);
+  connection = mysql.default.createConnection(connectionDetails);
+  mysqlutils.default.upgrade(connection);
+  mysqlutils.default.introspection(connection);
 }
 
 // ---------------------------------------------------------------------------
@@ -129,10 +129,8 @@ export const fetchData = async (table, fields = null, where = null, page = null)
   validateTable(table);
   const safeWhere = validateWhere(where);
 
-  const pageSize = 100;
-  const pageNum = Number(page) || 1;
-  const offset = (pageNum - 1) * pageSize;
   const whereClause = safeWhere ? `WHERE ${safeWhere}` : "";
+  const countSQL = `(SELECT CASE WHEN COUNT(id) > ${DEMO_ROW_LIMIT} THEN ${DEMO_ROW_LIMIT} ELSE COUNT(id) END FROM ${table} ${whereClause}) as count`;
 
   let fieldList = "*";
   if (fields) {
@@ -142,14 +140,12 @@ export const fetchData = async (table, fields = null, where = null, page = null)
 
   if (USE_SQLITE) {
     const db = await sqliteDbPromise;
-    const countSQL = `(SELECT COUNT(id) FROM ${table} ${whereClause}) as count`;
-    const sql = `SELECT ${fieldList}, ${countSQL} FROM ${table} ${whereClause} LIMIT ${pageSize} OFFSET ${offset}`;
+    const sql = `SELECT ${fieldList}, ${countSQL} FROM ${table} ${whereClause} LIMIT ${DEMO_ROW_LIMIT}`;
     return db.all(sql);
   }
 
   return new Promise((resolve, reject) => {
-    const countSQL = `(SELECT COUNT(id) FROM ${table} ${whereClause}) as count`;
-    const sqlStatement = `SELECT ${fieldList}, ${countSQL} FROM ${table} ${whereClause} LIMIT ${pageSize} OFFSET ${offset}`;
+    const sqlStatement = `SELECT ${fieldList}, ${countSQL} FROM ${table} ${whereClause} LIMIT ${DEMO_ROW_LIMIT}`;
     connection.query(sqlStatement, (error, results) => {
       if (error) reject(error);
       else resolve(results);
@@ -192,6 +188,30 @@ export const fetchDistinct = async (table, field, where = null) => {
  */
 export const addData = async (table, data) => {
   validateTable(table);
+
+  if (USE_SQLITE) {
+    const db = await sqliteDbPromise;
+    const row = await db.get(`SELECT COUNT(id) as count FROM ${table}`);
+    if (row.count >= DEMO_ROW_LIMIT) {
+      throw new Error(`Demo limit reached: ${table} cannot have more than ${DEMO_ROW_LIMIT} rows.`);
+    }
+  } else {
+    await new Promise((resolve, reject) => {
+      connection.query(`SELECT COUNT(id) as count FROM ${table}`, (error, results) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        if (results[0].count >= DEMO_ROW_LIMIT) {
+          reject(new Error(`Demo limit reached: ${table} cannot have more than ${DEMO_ROW_LIMIT} rows.`));
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
 
   const columns = Object.keys(data)
     .filter((k) => k !== "id" && data[k] !== undefined && data[k] !== "")
@@ -359,12 +379,14 @@ const getDropdownValues = async (tableName) => {
   const dropdownsMap = new Map([
     [
       "vendor",
-      { value: "id", text: "name", "data-description": "description" },
+      { _table: "vendor", value: "id", text: "name", "data-description": "description" },
     ],
-    ["orderStatus", { value: "id", text: "status" }],
+    ["order", { _table: "orders", value: "id", text: "orderDate" }],
+    ["orderStatus", { _table: "orderStatus", value: "id", text: "status" }],
     [
       "customer",
       {
+        _table: "customers",
         value: "id",
         text: "name",
         "data-email": "email",
@@ -374,11 +396,12 @@ const getDropdownValues = async (tableName) => {
     ],
     [
       "shippingCarrier",
-      { value: "id", text: "name", estimatedCost: "estimatedCost" },
+      { _table: "shippingCarrier", value: "id", text: "name", estimatedCost: "estimatedCost" },
     ],
     [
       "inventory",
       {
+        _table: "inventory",
         value: "id",
         text: "inventoryNumber",
         "data-quantity": "quantity",
@@ -387,16 +410,14 @@ const getDropdownValues = async (tableName) => {
     ],
   ]);
 
-  let table = tableName.replace("Id", "");
+  const key = tableName.replace("Id", "");
+  const items = dropdownsMap.get(key);
+  const table = items._table;
 
-  let fieldsArray = [];
-  let items = dropdownsMap.get(table);
+  const fieldsArray = [];
   for (const property in items) {
+    if (property === "_table") continue;
     fieldsArray.push(`${items[property]} as '${property}'`);
-  }
-
-  if (table !== "inventory") {
-    table = pluralize.plural(table);
   }
 
   return fetchData(table, fieldsArray);

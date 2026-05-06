@@ -47,6 +47,7 @@ function Orders() {
         setEditTable={handleSetEditTable}
         setShowEditModal={handleShowEditModal}
         subgrid="orderItems"
+        subgridKey="orderId"
         refreshKey={refreshKey}
       ></DataGrid>
 

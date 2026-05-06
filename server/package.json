@@ -19,7 +19,7 @@
     "mysql-utilities": "^1.1.4",
     "pluralize": "^8.0.0",
     "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7",
+    "sqlite3": "^6.0.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

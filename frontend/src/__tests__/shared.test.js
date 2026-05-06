@@ -18,19 +18,18 @@ describe("camelCaseToLabel", () => {
     expect(camelCaseToLabel("postalCode")).toBe("Postal Code");
   });
 
-  test("strips a trailing 's' to de-pluralize table names", () => {
-    // DataGrid calls camelCaseToLabel(table) for the Add button label.
-    expect(camelCaseToLabel("orders")).toBe("Order");
-    expect(camelCaseToLabel("customers")).toBe("Customer");
+  test("does not strip trailing s from table names", () => {
+    expect(camelCaseToLabel("orders")).toBe("Orders");
+    expect(camelCaseToLabel("customers")).toBe("Customers");
   });
 
-  test("converts 'ies' ending to 'y' before stripping 's'", () => {
-    // e.g. "companies" → "Companies" → "Company"
-    expect(camelCaseToLabel("companies")).toBe("Company");
+  test("does not alter ies endings", () => {
+    expect(camelCaseToLabel("companies")).toBe("Companies");
   });
 
   test("leaves non-plural words unchanged", () => {
     expect(camelCaseToLabel("inventory")).toBe("Inventory");
+    expect(camelCaseToLabel("address")).toBe("Address");
   });
 
   test("handles foreign-key Id fields (split at the capital 'I')", () => {

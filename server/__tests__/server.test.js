@@ -191,6 +191,21 @@ describe("fetchData", () => {
     assert.ok(Array.isArray(rows));
   });
 
+  it("caps demo table results and reported count at 20 rows", async () => {
+    const db = await sqliteDbPromise;
+    for (let i = 0; i < 25; i += 1) {
+      await db.run(
+        "INSERT INTO canWeights (canType, weight) VALUES (?, ?)",
+        [`Limit Test Can ${i}`, 1.0]
+      );
+    }
+
+    const rows = await fetchData("canWeights");
+
+    assert.strictEqual(rows.length, 20);
+    assert.strictEqual(rows[0].count, 20);
+  });
+
   it("respects a safe WHERE clause", async () => {
     // Insert a known customer then retrieve it by id
     const inserted = await addData("customers", { name: "WHERE Test Customer" });
@@ -250,6 +265,17 @@ describe("addData", () => {
     });
     assert.ok(result.id > 0);
     assert.notStrictEqual(result.id, 9999);
+  });
+
+  it("blocks inserts when the table already has 20 rows", async () => {
+    for (let i = 0; i < 15; i += 1) {
+      await addData("orderStatus", { status: `Limit Test Status ${i}` });
+    }
+
+    await assert.rejects(
+      () => addData("orderStatus", { status: "Limit Test Status Blocked" }),
+      /Demo limit reached/
+    );
   });
 
   it("throws for a disallowed table", async () => {

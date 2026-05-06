@@ -1,6 +1,8 @@
+import "dotenv/config";
 import * as db from "./utils/databaseAPI.js";
 
 import express from "express";
+import path from "path";
 
 const PORT = process.env.PORT || 3001;
 const app = express();
@@ -50,7 +52,10 @@ app.put("/add", (req, res) => {
   }
   db.addData(table, data)
     .then((result) => res.json(result))
-    .catch((err) => res.status(500).json({ error: err.message }));
+    .catch((err) => {
+      const status = err.message?.startsWith("Demo limit reached") ? 409 : 500;
+      res.status(status).json({ error: err.message });
+    });
 });
 
 app.patch("/update", (req, res) => {
@@ -72,6 +77,14 @@ app.delete("/delete", (req, res) => {
     .then((result) => res.json(result))
     .catch((err) => res.status(500).json({ error: err.message }));
 });
+
+if (process.env.STATIC_DIR) {
+  const staticDir = path.resolve(process.env.STATIC_DIR);
+  app.use(express.static(staticDir));
+  app.get("*", (req, res) => {
+    res.sendFile(path.join(staticDir, "index.html"));
+  });
+}
 
 app
   .listen(PORT, () => {

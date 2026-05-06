@@ -8,6 +8,13 @@
   pointer-events: none;
 }
 
+.App-intro {
+  max-width: 900px;
+  margin: auto;
+  text-align: left;
+  text-indent: 3ch;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;

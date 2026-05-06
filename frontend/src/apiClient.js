@@ -6,7 +6,7 @@ const buildQuery = (params = {}) =>
 
 const get = async (path, params = {}) => {
   const query = buildQuery(params);
-  const url = query ? `${path}?${query}` : path;
+  const url = query ? `/${path}?${query}` : `/${path}`;
   const res = await fetch(url, { credentials: "same-origin" });
   if (!res.ok) {
     const text = await res.text();
@@ -16,7 +16,7 @@ const get = async (path, params = {}) => {
 };
 
 const put = async (path, body = {}) => {
-  const res = await fetch(path, {
+  const res = await fetch(`/${path}`, {
     method: "PUT",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -30,7 +30,7 @@ const put = async (path, body = {}) => {
 };
 
 const patch = async (path, body = {}) => {
-  const res = await fetch(path, {
+  const res = await fetch(`/${path}`, {
     method: "PATCH",
     credentials: "same-origin",
     headers: { "Content-Type": "application/json" },
@@ -45,7 +45,7 @@ const patch = async (path, body = {}) => {
 
 const del = async (path, params = {}) => {
   const query = buildQuery(params);
-  const url = query ? `${path}?${query}` : path;
+  const url = query ? `/${path}?${query}` : `/${path}`;
   const res = await fetch(url, { method: "DELETE", credentials: "same-origin" });
   if (!res.ok) {
     const text = await res.text();

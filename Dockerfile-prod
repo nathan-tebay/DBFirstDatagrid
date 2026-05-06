@@ -1,0 +1,57 @@
+# Production Lambda container for dbfirstdatagrid.tebay.dev.
+# React is built to static files and Express serves both the app and API against
+# a bundled SQLite seed DB copied into Lambda's writable /tmp.
+
+FROM node:24-alpine AS frontend-build
+
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm ci --no-audit --no-fund
+COPY frontend/ ./
+RUN npm run build
+
+FROM node:24-alpine AS server-deps
+
+WORKDIR /app/server
+RUN apk add --no-cache --virtual .build-deps python3 make g++
+COPY server/package*.json ./
+RUN npm ci --omit=dev --omit=optional --no-audit --no-fund \
+  && npm uninstall mysql mysql-utilities pluralize uuid --omit=dev --no-audit --no-fund \
+  && npm cache clean --force \
+  && find node_modules -type d \( \
+      -name test -o -name tests -o -name __tests__ -o -name docs -o -name doc -o \
+      -name example -o -name examples -o -name .github -o -name .cache \
+    \) -prune -exec rm -rf '{}' + \
+  && find node_modules -type f \( \
+      -name '*.md' -o -name '*.markdown' -o -name '*.map' -o -name '*.ts' -o \
+      -name 'CHANGELOG*' -o -name 'HISTORY*' -o -name 'SECURITY*' \
+    \) -delete
+
+FROM alpine:3.22
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates libstdc++
+
+COPY --from=node:24-alpine /usr/local/bin/node /usr/local/bin/node
+COPY --from=public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=frontend-build /app/frontend/build /app/server/public
+COPY --from=server-deps /app/server/node_modules /app/server/node_modules
+COPY server/package.json /app/server/
+COPY server/index.js /app/server/
+COPY server/utils /app/server/utils
+COPY server/data/mapequipment.db /app/server/data/mapequipment.db
+
+ENV NODE_ENV=production
+ENV DB_TYPE=sqlite
+ENV SQLITE_DB=/tmp/mapequipment.db
+ENV STATIC_DIR=/app/server/public
+ENV PORT=8080
+ENV AWS_LWA_PORT=8080
+ENV AWS_LWA_READINESS_CHECK_PORT=8080
+ENV AWS_LWA_READINESS_CHECK_PATH=/
+ENV AWS_LWA_READINESS_CHECK_TIMEOUT=15
+
+EXPOSE 8080
+
+CMD ["sh", "-c", "cp /app/server/data/mapequipment.db /tmp/mapequipment.db && exec node /app/server/index.js"]
